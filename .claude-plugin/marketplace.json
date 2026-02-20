@@ -1,0 +1,21 @@
+{
+  "name": "claude-plugins",
+  "owner": {
+    "name": "ryosan-470"
+  },
+  "metadata": {
+    "description": "Custom Claude Code plugins collection",
+    "version": "1.0.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "sync-notebooklm",
+      "source": "./plugins/sync-notebooklm",
+      "description": "ConfluenceページをNotebookLMのソースとして差分同期する",
+      "version": "1.0.0",
+      "keywords": ["confluence", "notebooklm", "sync"],
+      "category": "productivity"
+    }
+  ]
+}
