@@ -4,7 +4,7 @@ argument-hint: <notebooklm名>
 allowed-tools: Bash, mcp__claude_ai_Atlassian__searchConfluenceUsingCql, mcp__claude_ai_Atlassian__getConfluencePage, mcp__claude_ai_Atlassian__getPagesInConfluenceSpace, mcp__claude_ai_Atlassian__getConfluenceSpaces, mcp__notebooklm-mcp__notebook_list, mcp__notebooklm-mcp__source_list, mcp__notebooklm-mcp__source_add, mcp__notebooklm-mcp__source_delete, mcp__notebooklm-mcp__source_get
 ---
 
-# sync-notebooklm: Confluence → NotebookLM 差分同期
+# confluence-to-notebooklm: Confluence → NotebookLM 差分同期
 
 同期対象ノートブック名: $ARGUMENTS
 
@@ -23,9 +23,9 @@ Confluenceのページを取得してNotebookLMのソースとして差分同期
 
 ```
 エラー: ノートブック名を指定してください。
-使用方法: /sync-notebooklm <notebooklm名>
+使用方法: /confluence-to-notebooklm <notebooklm名>
 
-例: /sync-notebooklm "設計資料"
+例: /confluence-to-notebooklm "設計資料"
 ```
 
 ### 1-2. 設定ファイルの読み込み
@@ -70,7 +70,7 @@ sources の type:
 Confluence の cloud_id は Atlassian 管理コンソール (admin.atlassian.com) で確認できます。
 ページIDはページ URL の末尾の数字です (例: .../pages/4697849891)
 
-設定後、再度 /sync-notebooklm <ノートブック名> を実行してください。
+設定後、再度 /confluence-to-notebooklm <ノートブック名> を実行してください。
 ```
 
 **設定ファイルは存在するがノートブック名のエントリがない場合**:

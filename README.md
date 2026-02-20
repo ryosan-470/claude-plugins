@@ -12,12 +12,12 @@ Private repository のため、`GITHUB_TOKEN` or `GH_TOKEN` 環境変数の設�
 
 ## Plugins
 
-### sync-notebooklm
+### confluence-to-notebooklm
 
 Confluence ページを NotebookLM のソースとして差分同期するスキル。
 
 ```
-/sync-notebooklm <notebooklm名>
+/confluence-to-notebooklm <notebooklm名>
 ```
 
 #### Prerequisites

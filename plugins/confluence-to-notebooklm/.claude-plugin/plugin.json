@@ -1,5 +1,5 @@
 {
-  "name": "sync-notebooklm",
+  "name": "confluence-to-notebooklm",
   "description": "ConfluenceページをNotebookLMのソースとして差分同期する。設定ファイルで指定されたConfluenceページを取得し、NotebookLMノートブックへ差分同期する。",
   "version": "1.0.0"
 }
