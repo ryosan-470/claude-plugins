@@ -23,8 +23,7 @@ Confluence ページを NotebookLM のソースとして差分同期するスキ
 #### Prerequisites
 
 - [Atlassian MCP](https://github.com/anthropics/claude-code) (Confluence API アクセス用)
-- [NotebookLM MCP](https://github.com/notebooklm-mcp/notebooklm-mcp) (`notebooklm-mcp`)
-- `nlm` CLI (MCP フォールバック用、任意)
+- [notebooklm-mcp-cli](https://github.com/jacob-bd/notebooklm-mcp-cli) (`pip install notebooklm-mcp-cli`、NotebookLM 操作用)
 
 #### Setup
 
@@ -72,7 +71,7 @@ mkdir -p ~/.config/nlm-confluence-sync
 #### Usage
 
 ```
-/sync-notebooklm 設計資料
+/confluence-to-notebooklm 設計資料
 ```
 
 差分検出により、前回同期以降に更新されたページのみが同期されます。
