@@ -23,7 +23,7 @@ Confluence ページを NotebookLM のソースとして差分同期するスキ
 #### Prerequisites
 
 - [Atlassian MCP](https://github.com/anthropics/claude-code) (Confluence API アクセス用)
-- [notebooklm-mcp-cli](https://github.com/jacob-bd/notebooklm-mcp-cli) (`pip install notebooklm-mcp-cli`、NotebookLM 操作用)
+- [uv](https://docs.astral.sh/uv/) (スクリプト実行・依存解決に使用、`notebooklm-mcp-cli` は自動インストール)
 
 #### Setup
 

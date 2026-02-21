@@ -52,7 +52,7 @@ find ~/.claude -name sync.py -path '*/confluence-to-notebooklm/scripts/*' 2>/dev
 以下を実行する:
 
 ```bash
-python3 "$SYNC_SCRIPT" plan "$ARGUMENTS"
+uv run "$SYNC_SCRIPT" plan "$ARGUMENTS"
 ```
 
 出力された JSON をパースする。
@@ -135,7 +135,7 @@ with open('<workdir>/pages/<page_id>.json', 'w', encoding='utf-8') as f:
 以下を実行する:
 
 ```bash
-python3 "$SYNC_SCRIPT" sync "$ARGUMENTS" --workdir "<workdir>"
+uv run "$SYNC_SCRIPT" sync "$ARGUMENTS" --workdir "<workdir>"
 ```
 
 出力された JSON をパースして結果を表示する:

@@ -1,16 +1,16 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
+# /// script
+# dependencies = ["notebooklm-mcp-cli"]
+# ///
 """
 sync.py - Confluence to NotebookLM 差分同期ヘルパースクリプト
 
-LLM が Confluence ページを取得した後、決定論的な処理（差分計算、NotebookLM 操作、
-メタデータ管理）をすべて担当する。
+LLM が Confluence ページを取得した後、(決定論的な処理差分計算、NotebookLM 操作、
+メタデータ管理)をすべて担当する。
 
 使い方:
-  python3 sync.py plan <notebook_name>
-  python3 sync.py sync <notebook_name> --workdir <workdir>
-
-依存:
-  notebooklm-mcp-cli パッケージ (pip install notebooklm-mcp-cli)
+  uv run sync.py plan <notebook_name>
+  uv run sync.py sync <notebook_name> --workdir <workdir>
 """
 
 import argparse
@@ -31,14 +31,8 @@ def error_exit(message: str, hint: str = "", code: int = 1):
 
 
 def load_notebooklm_client():
-    try:
-        from notebooklm_tools import NotebookLMClient
-        return NotebookLMClient()
-    except ImportError:
-        error_exit(
-            "notebooklm_tools がインストールされていません",
-            "pip install notebooklm-mcp-cli を実行してください",
-        )
+    from notebooklm_tools import NotebookLMClient
+    return NotebookLMClient()
 
 
 def resolve_notebook_id(client, notebook_name: str) -> str:
