@@ -23,8 +23,8 @@ Python スクリプト（sync.py）がメタデータ管理・差分計算・Not
 
 ```
 エラー: ノートブック名を指定してください。
-使用方法: /confluence-to-notebooklm <notebooklm名>
-例: /confluence-to-notebooklm "設計資料"
+使用方法: /confluence-to-notebooklm:sync <notebooklm名>
+例: /confluence-to-notebooklm:sync "設計資料"
 ```
 
 ### 1-2. sync.py の検出
