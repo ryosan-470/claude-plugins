@@ -13,8 +13,8 @@
       "name": "confluence-to-notebooklm",
       "source": "./plugins/confluence-to-notebooklm",
       "description": "ConfluenceページをNotebookLMのソースとして差分同期する",
-      "version": "2.1.0",
-      "keywords": ["confluence", "notebooklm", "sync"],
+      "version": "2.2.0",
+      "keywords": ["confluence", "notebooklm", "sync", "setup"],
       "category": "productivity"
     }
   ]

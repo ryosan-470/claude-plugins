@@ -8,17 +8,11 @@ Custom Claude Code plugin marketplace.
 /plugin marketplace add ryosan-470/claude-plugins
 ```
 
-Private repository のため、`GITHUB_TOKEN` or `GH_TOKEN` 環境変数の設定が必要です。
-
 ## Plugins
 
-### confluence-to-notebooklm
+### confluence-to-notebooklm (v2.2.0)
 
 Confluence ページを NotebookLM のソースとして差分同期するスキル。
-
-```
-/confluence-to-notebooklm <notebooklm名>
-```
 
 #### Prerequisites
 
@@ -27,7 +21,25 @@ Confluence ページを NotebookLM のソースとして差分同期するスキ
 
 #### Setup
 
-初回実行時に設定ファイルの作成が必要です:
+Claude Code 上でプラグインをインストールします。
+
+```
+/plugin install confluence-to-notebooklm@ryosan-470-plugins
+```
+
+##### 対話的セットアップ（推奨）
+
+setup スキルで Confluence ソースを対話的に選択し、設定ファイルを自動生成できます:
+
+```
+/confluence-to-notebooklm:setup "設計資料"
+```
+
+Cloud ID の自動検出、スペース/ページのブラウズ、CQL クエリのプレビューに対応しています。
+
+##### 手動セットアップ
+
+手動で設定ファイルを作成する場合:
 
 ```bash
 mkdir -p ~/.config/nlm-confluence-sync

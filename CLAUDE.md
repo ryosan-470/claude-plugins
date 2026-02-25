@@ -31,3 +31,14 @@ Skills interact with external services via MCP tool names (e.g., `mcp__claude_ai
 1. Create `plugins/<plugin-name>/.claude-plugin/plugin.json` with `name`, `description`, `version`
 2. Create `plugins/<plugin-name>/skills/<skill-name>/SKILL.md` with frontmatter and implementation steps
 3. Register in `.claude-plugin/marketplace.json` under the `plugins` array (include `name`, `source`, `description`, `version`, `keywords`, `category`)
+
+## Local Testing
+
+To test plugins locally without pushing to remote:
+
+```
+/plugin marketplace add /path/to/claude-plugins
+/plugin install <plugin-name>@ryosan-470-plugins
+```
+
+Adding a local path as a marketplace allows installing and running skills without pushing to the remote repository.
