@@ -83,7 +83,7 @@ mkdir -p ~/.config/nlm-confluence-sync
 #### Usage
 
 ```
-/confluence-to-notebooklm 設計資料
+/confluence-to-notebooklm:sync 設計資料
 ```
 
 差分検出により、前回同期以降に更新されたページのみが同期されます。
