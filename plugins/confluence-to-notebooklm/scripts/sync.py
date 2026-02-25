@@ -32,7 +32,19 @@ def error_exit(message: str, hint: str = "", code: int = 1):
 
 def load_notebooklm_client():
     from notebooklm_tools import NotebookLMClient
-    return NotebookLMClient()
+    from notebooklm_tools.core import load_cached_tokens
+
+    tokens = load_cached_tokens()
+    if tokens is None:
+        error_exit(
+            "NotebookLM の認証トークンが見つかりません",
+            "notebooklm-mcp auth login を実行してログインしてください",
+        )
+    return NotebookLMClient(
+        cookies=tokens.cookies,
+        csrf_token=tokens.csrf_token,
+        session_id=tokens.session_id,
+    )
 
 
 def resolve_notebook_id(client, notebook_name: str) -> str:
@@ -223,7 +235,7 @@ def cmd_sync(notebook_name: str, workdir_path: str):
         tmp_file.write_text(content, encoding="utf-8")
 
         try:
-            result = client.upload_file(notebook_id, str(tmp_file))
+            result = client.add_file(notebook_id, str(tmp_file))
             # Pydantic モデルと dict の両方に対応
             source_id = (
                 result.id if hasattr(result, "id") else result.get("id", str(result))
