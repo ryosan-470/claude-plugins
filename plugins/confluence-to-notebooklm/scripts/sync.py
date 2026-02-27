@@ -214,7 +214,7 @@ def cmd_sync(notebook_name: str, workdir_path: str):
         source_id = known_pages[page_id].get("source_id")
         if source_id:
             try:
-                client.delete_source(notebook_id, source_id)
+                client.delete_source(source_id)
                 del metadata["pages"][page_id]
                 save_metadata(metadata, notebook_id, notebook_name, now)
                 deleted += 1
@@ -232,7 +232,7 @@ def cmd_sync(notebook_name: str, workdir_path: str):
             old_source_id = known_pages[page_id].get("source_id")
             if old_source_id:
                 try:
-                    client.delete_source(notebook_id, old_source_id)
+                    client.delete_source(old_source_id)
                 except Exception as e:
                     errors.append(
                         {"page_id": page_id, "title": title, "action": "delete_before_update", "error": str(e)}
