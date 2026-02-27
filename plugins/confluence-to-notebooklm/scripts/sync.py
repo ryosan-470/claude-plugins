@@ -14,11 +14,17 @@ LLM が Confluence ページを取得した後、(決定論的な処理差分計
 """
 
 import argparse
+import hashlib
 import json
 import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+def content_hash(text: str) -> str:
+    """Compute SHA-256 hex digest of content for change detection."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
 
 CONFIG_DIR = Path.home() / ".config" / "nlm-confluence-sync"
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -194,7 +200,8 @@ def cmd_sync(notebook_name: str, workdir_path: str):
     to_update = {
         pid
         for pid in known_ids & current_ids
-        if current_pages[pid]["version"] > known_pages[pid].get("page_version", 0)
+        if content_hash(current_pages[pid]["content_markdown"])
+        != known_pages[pid].get("content_hash", "")
     }
     unchanged_count = len((known_ids & current_ids) - to_update)
 
@@ -220,14 +227,17 @@ def cmd_sync(notebook_name: str, workdir_path: str):
         title = page_data["title"]
         content = page_data["content_markdown"]
 
-        # 更新の場合は古いソースを削除
+        # 更新の場合は古いソースを削除してから再追加する
         if page_id in to_update:
             old_source_id = known_pages[page_id].get("source_id")
             if old_source_id:
                 try:
                     client.delete_source(notebook_id, old_source_id)
-                except Exception:
-                    pass  # ベストエフォート
+                except Exception as e:
+                    errors.append(
+                        {"page_id": page_id, "title": title, "action": "delete_before_update", "error": str(e)}
+                    )
+                    continue  # 削除失敗時は重複防止のためスキップ
 
         # ファイル名に [CONF:<page_id>] プレフィックスを付けてタイトルとして認識させる
         safe_title = title.replace("/", "-").replace("\\", "-").replace("\0", "")
@@ -243,7 +253,8 @@ def cmd_sync(notebook_name: str, workdir_path: str):
 
             metadata["pages"][page_id] = {
                 "source_id": source_id,
-                "page_version": page_data["version"],
+                "page_version": page_data.get("version", 0),
+                "content_hash": content_hash(page_data["content_markdown"]),
                 "page_title": title,
                 "synced_at": now,
             }

@@ -10,7 +10,7 @@ Custom Claude Code plugin marketplace.
 
 ## Plugins
 
-### confluence-to-notebooklm (v2.2.0)
+### confluence-to-notebooklm
 
 Confluence ページを NotebookLM のソースとして差分同期するスキル。
 
