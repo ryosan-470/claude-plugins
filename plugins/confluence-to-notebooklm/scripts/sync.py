@@ -14,17 +14,11 @@ LLM が Confluence ページを取得した後、(決定論的な処理差分計
 """
 
 import argparse
-import hashlib
 import json
 import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-
-def content_hash(text: str) -> str:
-    """Compute SHA-256 hex digest of content for change detection."""
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
 
 CONFIG_DIR = Path.home() / ".config" / "nlm-confluence-sync"
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -200,8 +194,8 @@ def cmd_sync(notebook_name: str, workdir_path: str):
     to_update = {
         pid
         for pid in known_ids & current_ids
-        if content_hash(current_pages[pid]["content_markdown"])
-        != known_pages[pid].get("content_hash", "")
+        if current_pages[pid].get("version", 0)
+        != known_pages[pid].get("page_version", -1)
     }
     unchanged_count = len((known_ids & current_ids) - to_update)
 
@@ -254,7 +248,6 @@ def cmd_sync(notebook_name: str, workdir_path: str):
             metadata["pages"][page_id] = {
                 "source_id": source_id,
                 "page_version": page_data.get("version", 0),
-                "content_hash": content_hash(page_data["content_markdown"]),
                 "page_title": title,
                 "synced_at": now,
             }

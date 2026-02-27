@@ -1,7 +1,7 @@
 ---
 description: ConfluenceページをNotebookLMのソースとして差分同期する。設定ファイルで指定されたConfluenceページを取得し、NotebookLMノートブックへ差分同期する。
 argument-hint: <notebooklm名>
-allowed-tools: Bash, Write, mcp__claude_ai_Atlassian__searchConfluenceUsingCql, mcp__claude_ai_Atlassian__getConfluencePage, mcp__claude_ai_Atlassian__getPagesInConfluenceSpace, mcp__claude_ai_Atlassian__getConfluenceSpaces
+allowed-tools: Bash, Write, mcp__claude_ai_Atlassian__searchConfluenceUsingCql, mcp__claude_ai_Atlassian__fetch, mcp__claude_ai_Atlassian__getPagesInConfluenceSpace, mcp__claude_ai_Atlassian__getConfluenceSpaces
 ---
 
 # confluence-to-notebooklm: Confluence → NotebookLM 差分同期
@@ -84,48 +84,46 @@ uv run "$SYNC_SCRIPT" plan "$ARGUMENTS"
 }
 ```
 
-**注意**: 変更検出はコンテンツのハッシュ比較で行うため、`version` は参考情報である。取得できない場合は 0 とする。
+**注意**: `version` は変更検出のキーとなる値である。`mcp__claude_ai_Atlassian__fetch` の `metadata.version` を必ず設定すること。
 
 **重要: 保存には必ず Write ツールを使用すること。**
 
-MCP レスポンスの `body` フィールドの内容を**一切要約・省略せずにそのまま** JSON に含めること。
+MCP レスポンスの `text` フィールドの内容を**一切要約・省略せずにそのまま** JSON に含めること。
 `python3 -c` やシェルの heredoc を使うと、コンテンツがシェル文字列に埋め込まれる過程で要約・劣化するため使用禁止。
 
 Write ツールで `<workdir>/pages/<page_id>.json` に以下の JSON 文字列を書き込む:
 
 ```json
-{"page_id": "<page_id>", "title": "<title>", "version": <version（取得できない場合は 0）>, "content_markdown": "<bodyフィールドの内容をそのまま>"}
+{"page_id": "<page_id>", "title": "<title>", "version": <metadata.versionの値>, "content_markdown": "<textフィールドの内容をそのまま>"}
 ```
 
 各ページの MCP レスポンスを受け取ったら、1ページずつ即座に Write ツールで保存すること。
 
 ### type: "pages"（特定ページIDリスト）
 
-`page_ids` の各 ID について `mcp__claude_ai_Atlassian__getConfluencePage` を呼び出す:
-- `cloudId`: `cloud_id`
-- `pageId`: 各 page_id
-- `contentFormat`: `"markdown"`
+`page_ids` の各 ID について `mcp__claude_ai_Atlassian__fetch` を呼び出す:
+- `id`: `ari:cloud:confluence:<cloud_id>:page/<page_id>`
 
-レスポンスから `id`（page_id）、`title`、本文（Markdown）を取得して保存する。`version.number` が取得できる場合はバージョン番号として保存し、取得できない場合は 0 とする。
+レスポンスから `title`、`text`（Markdown本文）、`metadata.version` を取得して保存する。
 取得に失敗したページはスキップする。
 
 ### type: "space"（スペース全体）
 
 1. `mcp__claude_ai_Atlassian__getConfluenceSpaces` でスペースキーからスペース ID を解決する
 2. `mcp__claude_ai_Atlassian__getPagesInConfluenceSpace` でページ一覧を取得する（ページネーション対応）
-3. 各ページについて `mcp__claude_ai_Atlassian__getConfluencePage` でコンテンツを取得して保存する
+3. 各ページについて `mcp__claude_ai_Atlassian__fetch` で `id`: `ari:cloud:confluence:<cloud_id>:page/<page_id>` を指定してコンテンツを取得して保存する
 
 ### type: "page_tree"（ページツリー）
 
 `mcp__claude_ai_Atlassian__searchConfluenceUsingCql` で検索する:
 - CQL: `ancestor = <page_id> OR id = <page_id>`
 
-各ページのコンテンツを `mcp__claude_ai_Atlassian__getConfluencePage` で取得して保存する。
+各ページのコンテンツを `mcp__claude_ai_Atlassian__fetch` で `id`: `ari:cloud:confluence:<cloud_id>:page/<page_id>` を指定して取得して保存する。
 
 ### type: "cql"（CQLクエリ）
 
 設定の `query` を `mcp__claude_ai_Atlassian__searchConfluenceUsingCql` に渡す。
-各ページのコンテンツを `mcp__claude_ai_Atlassian__getConfluencePage` で取得して保存する。
+各ページのコンテンツを `mcp__claude_ai_Atlassian__fetch` で `id`: `ari:cloud:confluence:<cloud_id>:page/<page_id>` を指定して取得して保存する。
 
 ---
 
