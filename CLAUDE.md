@@ -24,7 +24,7 @@ Skills are the core implementation unit. Each SKILL.md is a Markdown file with:
 - **YAML frontmatter**: `description`, `argument-hint`, and `allowed-tools` (whitelists which Claude Code tools and MCP tools the skill may use)
 - **Body**: Step-by-step procedural specification that Claude Code follows at runtime. This is not documentation — it is the executable implementation.
 
-Skills interact with external services via MCP tool names (e.g., `mcp__claude_ai_Atlassian__getConfluencePage`) and Python scripts that use external libraries (e.g., `notebooklm_tools` from `notebooklm-mcp-cli`).
+Skills interact with external services via MCP tool names (e.g., `mcp__claude_ai_Atlassian__getConfluencePage`) with CLI fallback commands when MCP is unavailable.
 
 ## Adding a New Plugin
 
