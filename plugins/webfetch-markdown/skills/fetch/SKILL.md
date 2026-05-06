@@ -2,6 +2,7 @@
 description: URLのHTMLをMarkdown/プレーンテキストに変換してコンテキストに渡す。WebFetchのHaiku要約をバイパスして生のページ内容を取得する。curl失敗時はWebFetchにフォールバック。
 argument-hint: <URL> [--more]
 allowed-tools: Bash, WebFetch
+model: haiku
 ---
 
 # webfetch-markdown:fetch — 生ページ内容をMarkdownで取得
