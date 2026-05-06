@@ -34,7 +34,21 @@ Skills interact with external services via MCP tool names (e.g., `mcp__claude_ai
 
 ## Local Testing
 
-To test plugins locally without pushing to remote:
+### Option 1: `--plugin-dir` (推奨・最速)
+
+インストール操作なしで、セッション起動時に直接プラグインディレクトリを読み込む:
+
+```
+claude --plugin-dir /path/to/claude-plugins/plugins/<plugin-name>
+```
+
+起動直後からスキルが使える。複数プラグインを同時に読み込む場合は繰り返し指定:
+
+```
+claude --plugin-dir ./plugins/webfetch-markdown --plugin-dir ./plugins/other-plugin
+```
+
+### Option 2: ローカルマーケットプレース経由
 
 ```
 /plugin marketplace add /path/to/claude-plugins
