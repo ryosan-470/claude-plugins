@@ -8,5 +8,14 @@
     "version": "1.0.0",
     "pluginRoot": "./plugins"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "webfetch-markdown",
+      "source": "./plugins/webfetch-markdown",
+      "description": "URLのHTMLをMarkdown/プレーンテキストに変換してコンテキストに渡す。WebFetchのHaiku要約をバイパスして生のページ内容を取得する。",
+      "version": "1.0.0",
+      "keywords": ["webfetch", "html", "markdown", "curl"],
+      "category": "utility"
+    }
+  ]
 }

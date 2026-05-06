@@ -1,0 +1,5 @@
+{
+  "name": "webfetch-markdown",
+  "description": "URLのHTMLをMarkdown/プレーンテキストに変換してコンテキストに渡す。WebFetchのHaiku要約をバイパスして生のページ内容を取得する。",
+  "version": "1.0.0"
+}
