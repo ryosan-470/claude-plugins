@@ -1,0 +1,5 @@
+{
+  "name": "websearch-fallback",
+  "description": "Omniroute の /api/v1/search で Web 検索し、URL / タイトル / スニペットを返す。標準 WebSearch がプロキシの streaming 経路で検索結果を返さない環境向け。",
+  "version": "1.0.0"
+}

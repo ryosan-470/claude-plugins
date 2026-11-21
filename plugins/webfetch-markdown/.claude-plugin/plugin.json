@@ -1,5 +1,5 @@
 {
   "name": "webfetch-markdown",
-  "description": "URLのHTMLをMarkdown/プレーンテキストに変換してコンテキストに渡す。WebFetchのHaiku要約をバイパスして生のページ内容を取得する。",
-  "version": "1.0.0"
+  "description": "URLのHTMLをMarkdown/プレーンテキストに変換してコンテキストに渡す。Omniroute 環境では /api/v1/web/fetch を使い、未使用時は curl / w3m / python3 で取得する。WebFetchは使わない。",
+  "version": "1.1.0"
 }
