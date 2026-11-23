@@ -41,14 +41,19 @@ URLが空、または `http://` / `https://` で始まらない場合は以下�
 
 ## STEP 2: キャッシュファイルパスの計算
 
-URLのSHA256ハッシュ (先頭16文字) を使ってキャッシュパスを決定する:
+URLのSHA256ハッシュ (先頭16文字) を使ってキャッシュパスを決定する。`sha256sum` の有無で分岐し、ハッシュが空にならないことを保証する (`sha256sum | cut` のパイプライン終了コードは `cut` のものなので、`||` でフォールバックさせない):
 
 ```bash
-URL_HASH=$(echo -n "$URL" | sha256sum 2>/dev/null | cut -c1-16 \
-           || echo -n "$URL" | shasum -a 256 2>/dev/null | cut -c1-16 \
-           || python3 -I -c "import hashlib,sys; print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:16])" "$URL")
+if command -v sha256sum >/dev/null 2>&1; then
+  URL_HASH=$(printf '%s' "$URL" | sha256sum | cut -c1-16)
+elif command -v shasum >/dev/null 2>&1; then
+  URL_HASH=$(printf '%s' "$URL" | shasum -a 256 | cut -c1-16)
+else
+  URL_HASH=$(python3 -I -c "import hashlib,sys; print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:16])" "$URL")
+fi
 CACHE_MD="/tmp/wfm-${URL_HASH}.md"
 CACHE_OFFSET="/tmp/wfm-${URL_HASH}.offset"
+CACHE_META="/tmp/wfm-${URL_HASH}.meta"
 ```
 
 ## STEP 3: --more モードの処理
@@ -61,14 +66,30 @@ CACHE_OFFSET="/tmp/wfm-${URL_HASH}.offset"
    /webfetch-markdown:fetch <URL>
    ```
 
-2. `$CACHE_OFFSET` から現在のオフセット (バイト) を読み込む。ファイルがなければ `0`。
-
-3. オフセット位置から 51200 バイト (50KB) を読み出す:
+2. `$CACHE_OFFSET` から現在のオフセット (バイト) を読み込む。ファイルがなければ `0`。メタ情報 (`$CACHE_META`) から `TOOL_USED` と `PAGE_TITLE` を復元する:
    ```bash
-   CHUNK=$(dd if="$CACHE_MD" bs=1 skip="$OFFSET" count=51200 2>/dev/null)
+   OFFSET=$(cat "$CACHE_OFFSET" 2>/dev/null || echo 0)
+   TOOL_USED=$(sed -n '1p' "$CACHE_META" 2>/dev/null)
+   PAGE_TITLE=$(sed -n '2p' "$CACHE_META" 2>/dev/null)
    ```
 
-4. 実際に読み出せたバイト数を計算し、新しいオフセット = 旧オフセット + 読み出しバイト数 を `$CACHE_OFFSET` に書く。
+3. オフセット位置から 51200 バイト (50KB) を読み出す。末尾の改行を落とさず正確なバイト数を得るため、一度ファイルに書き出す:
+   ```bash
+   CHUNK_FILE=$(mktemp /tmp/wfm-chunk-XXXXXX)
+   dd if="$CACHE_MD" bs=1 skip="$OFFSET" count=51200 of="$CHUNK_FILE" 2>/dev/null
+   READ_BYTES=$(wc -c < "$CHUNK_FILE" | tr -d ' ')
+   CHUNK=$(cat "$CHUNK_FILE")
+   rm -f "$CHUNK_FILE"
+   ```
+
+4. 新しいオフセット = 旧オフセット + 読み出しバイト数 を `$CACHE_OFFSET` に書く。`PAGE_INFO` はファイル全体と読み出し済みの範囲から組み立てる:
+   ```bash
+   NEW_OFFSET=$(( OFFSET + READ_BYTES ))
+   printf '%s\n' "$NEW_OFFSET" > "$CACHE_OFFSET"
+   TOTAL_KB=$(( $(wc -c < "$CACHE_MD") / 1024 ))
+   SHOWN_KB=$(( NEW_OFFSET / 1024 ))
+   PAGE_INFO="全 ${TOTAL_KB} KB 中 ${SHOWN_KB} KB まで"
+   ```
 
 5. STEP 11 の出力フォーマットに従いチャンクを出力する。
 
@@ -77,7 +98,7 @@ CACHE_OFFSET="/tmp/wfm-${URL_HASH}.offset"
    ⚠️ [TRUNCATED] 全 YY KB 中 ZZ KB まで表示。続きは:
    /webfetch-markdown:fetch <URL> --more
    ```
-   全て表示し終えた場合はキャッシュファイル (`$CACHE_MD`, `$CACHE_OFFSET`) を削除する。
+   全て表示し終えた場合はキャッシュファイル (`$CACHE_MD`, `$CACHE_OFFSET`, `$CACHE_META`) を削除する。
 
 7. **ここで処理を終了する (以降の STEP は実行しない)**。
 
@@ -155,6 +176,7 @@ rm -f "$OMNI_TMP"
 - `include_metadata: true` で `.metadata.title` などが入る
 - HTTP 200 でも `.content` が空のことがある (`ftp://` など)。必ず content の有無で判定する
 - 認証は `OMNIROUTE_API_KEY` (Omniroute の API キー) を `Authorization: Bearer` で送る。未設定ならヘッダーなし (localhost の既定構成では不要)
+- `WEBFETCH_BASE_URL` / `ANTHROPIC_BASE_URL` はホストのルートを指定する (`.../v1` などのパスを含めない)。API パスは自動で `/api/v1/...` を付与する
 
 ## STEP 6: curl で直接取得
 
@@ -260,13 +282,13 @@ PY
 
 STEP 6 または STEP 7-3 で HTML を取得した場合のみ実行する。STEP 5 (Omniroute) と STEP 7-2 (w3m) はスキップする。
 
-以下の優先順で変換ツールを検出し、最初に見つかったものを使用する。変換結果を `CONVERTED` 変数に格納し、使用したツール名を `TOOL_USED` に記録する。
+以下の優先順で変換ツールを検出し、最初に見つかったものを使用する。変換結果を `CONVERTED` 変数に格納し、使用したツール名を `TOOL_USED` に記録する。HTML は必ず `printf '%s'` で渡す (`echo` は zsh で `\n` などのバックスラッシュを解釈し、内容を壊すため)。
 
 ### 優先度 1: pandoc
 
 ```bash
 if command -v pandoc >/dev/null 2>&1; then
-  CONVERTED=$(echo "$HTML" | pandoc -f html -t markdown --wrap=none 2>/dev/null)
+  CONVERTED=$(printf '%s' "$HTML" | pandoc -f html -t markdown --wrap=none 2>/dev/null)
   TOOL_USED="pandoc"
 fi
 ```
@@ -275,7 +297,7 @@ fi
 
 ```bash
 elif command -v uv >/dev/null 2>&1; then
-  CONVERTED=$(echo "$HTML" | uv run --quiet --with html2text python -m html2text 2>/dev/null)
+  CONVERTED=$(printf '%s' "$HTML" | uv run --quiet --with html2text python -m html2text 2>/dev/null)
   TOOL_USED="html2text (uv)"
 fi
 ```
@@ -284,7 +306,7 @@ fi
 
 ```bash
 else
-  CONVERTED=$(echo "$HTML" | python3 -I -c "
+  CONVERTED=$(printf '%s' "$HTML" | python3 -I -c "
 import sys, re
 text = sys.stdin.read()
 text = re.sub(r'<(script|style)[^>]*>.*?</\1>', '', text, flags=re.DOTALL | re.IGNORECASE)
@@ -303,23 +325,35 @@ fi
 
 ## STEP 9: JS 依存サイトの検出
 
-`CONVERTED` のバイト数が 1024 未満の場合:
+`CONVERTED` のバイト数が 1024 未満の場合、取得経路に応じて警告を出す。
+
+`USE_OMNIROUTE=true` (Omniroute 経由) の場合:
 
 ```
 ⚠️ [JS-DEPENDENT] 取得したコンテンツが非常に少量 (X バイト) です。
-   このサイトはJavaScriptで動的にコンテンツを生成している可能性があります。
-   curlは静的HTMLのみ取得するため、SPAや動的サイトでは内容が取得できません。
-   Omniroute 環境なら --direct を外して再実行すると改善する場合があります。
+   このページはJavaScriptで動的にコンテンツを生成している可能性があります。
+   Omniroute の取得プロバイダーが本文を返せていない可能性があります。
+   Omniroute 側の取得プロバイダー設定を確認するか、ブラウザ系 MCP (chrome-devtools など) を試してください。
+```
+
+`USE_OMNIROUTE=false` (curl / w3m / python3 経由) の場合:
+
+```
+⚠️ [JS-DEPENDENT] 取得したコンテンツが非常に少量 (X バイト) です。
+   このページはJavaScriptで動的にコンテンツを生成している可能性があります。
+   取得経路 (<TOOL_USED>) は静的HTMLのみを扱うため、SPAや動的サイトでは内容を取得できません。
+   DIRECT_MODE=true で実行している場合は --direct を外して再実行すると改善する場合があります。
 ```
 
 ## STEP 10: キャッシュ書き込みとサイズチェック
 
-変換済みコンテンツをキャッシュに保存する:
+変換済みコンテンツをキャッシュに保存する。`--more` 用にメタ情報 (取得経路・タイトル) も残す:
 
 ```bash
-echo "$CONVERTED" > "$CACHE_MD"
-TOTAL_BYTES=$(wc -c < "$CACHE_MD")
+printf '%s' "$CONVERTED" > "$CACHE_MD"
+TOTAL_BYTES=$(wc -c < "$CACHE_MD" | tr -d ' ')
 TOTAL_KB=$(( TOTAL_BYTES / 1024 ))
+printf '%s\n%s\n' "${TOOL_USED:-unknown}" "${PAGE_TITLE:-}" > "$CACHE_META"
 ```
 
 サイズに応じて処理を分岐する:
@@ -329,7 +363,7 @@ TOTAL_KB=$(( TOTAL_BYTES / 1024 ))
 全文を出力し、キャッシュファイルを削除する:
 
 ```bash
-rm -f "$CACHE_MD" "$CACHE_OFFSET"
+rm -f "$CACHE_MD" "$CACHE_OFFSET" "$CACHE_META"
 CHUNK="$CONVERTED"
 PAGE_INFO="全 ${TOTAL_KB} KB (全文)"
 NEEDS_MORE=false
@@ -341,7 +375,7 @@ NEEDS_MORE=false
 
 ```bash
 CHUNK=$(dd if="$CACHE_MD" bs=1 count=51200 2>/dev/null)
-echo "51200" > "$CACHE_OFFSET"
+printf '%s\n' "51200" > "$CACHE_OFFSET"
 PAGE_INFO="全 ${TOTAL_KB} KB 中先頭 50 KB"
 NEEDS_MORE=true
 ```

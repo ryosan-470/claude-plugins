@@ -10,4 +10,14 @@ Custom Claude Code plugin marketplace.
 
 ## Plugins
 
-現在登録されているプラグインはありません。
+| Plugin | Description |
+| --- | --- |
+| `webfetch-markdown` | URL の HTML を Markdown / プレーンテキストに変換して取得する (Omniroute の `/api/v1/web/fetch`、curl / w3m / python3) |
+| `websearch-fallback` | Omniroute の `/api/v1/search` で Web 検索し、URL / タイトル / スニペットを返す |
+
+インストール:
+
+```
+/plugin install webfetch-markdown@ryosan-470-plugins
+/plugin install websearch-fallback@ryosan-470-plugins
+```

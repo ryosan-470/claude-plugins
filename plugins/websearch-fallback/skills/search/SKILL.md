@@ -8,7 +8,7 @@ allowed-tools: Bash
 
 Claude Code 標準の `WebSearch` は常にストリーミングで API を叩く。Anthropic 互換プロキシ (Omniroute) が streaming 経路で `web_search` サーバーツールを実行しない場合、検索結果 0 件のままモデルの前置きテキストだけが返り、成功したように見える。このスキルは Omniroute の専用 API `POST /api/v1/search` を直接叩き、実際の検索結果を取得する。
 
-**結果 0 件を成功として扱わない。** `.results` が空、または HTTP エラーの場合は失敗として報告し、「検索した」というテキストで埋めない。
+**結果 0 件を成功として扱わない。** `.results` が空で `.answer` もない場合、または HTTP エラーの場合は失敗として報告し、「検索した」というテキストで埋めない。`.answer` だけがある場合は回答として表示する。
 
 ## STEP 1: 引数の解析
 
@@ -27,7 +27,7 @@ ARGUMENTS="$ARGUMENTS"  # スキルランタイムが注入
 | `--provider ID` | なし | 検索プロバイダー ID。省略時は Omniroute の自動選択 |
 | それ以外 | - | 検索クエリ (複数トークンはスペースで連結) |
 
-`--max` が数値でない場合は `5` にフォールバックする。
+`--max` は数値以外を `5` にフォールバックし、1〜100 に丸める:
 
 ```bash
 MAX_RESULTS=5
@@ -35,6 +35,10 @@ SEARCH_TYPE="web"
 PROVIDER_ID=""
 QUERY_PARTS=()
 # トークンを順に走査し、上記を埋める。QUERY_PARTS はスペースで連結して QUERY にする。
+
+case "$MAX_RESULTS" in ''|*[!0-9]*) MAX_RESULTS=5 ;; esac
+if [ "$MAX_RESULTS" -lt 1 ]; then MAX_RESULTS=1; fi
+if [ "$MAX_RESULTS" -gt 100 ]; then MAX_RESULTS=100; fi
 ```
 
 クエリが空の場合は以下を表示して終了する:
@@ -64,6 +68,11 @@ elif [ -n "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
   AUTH_HEADER=(-H "Authorization: Bearer ${ANTHROPIC_AUTH_TOKEN}")
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "エラー: jq が必要です (例: brew install jq)。"
+  exit 1
+fi
+
 PROBE=$(mktemp /tmp/wfs-providers-XXXXXX)
 PROBE_CODE=$(curl -sS --max-time 5 -o "$PROBE" -w '%{http_code}' \
   "${AUTH_HEADER[@]}" "$BASE_URL/api/v1/search" 2>/dev/null)
@@ -79,6 +88,8 @@ fi
 ```
 
 `PROBE` は STEP 3 のプロバイダー確認でも使うため、ここでは削除しない。
+
+`WEBSEARCH_BASE_URL` / `ANTHROPIC_BASE_URL` はホストのルートを指定する (`.../v1` などのパスを含めない)。API パスは自動で `/api/v1/...` を付与する。
 
 ## STEP 3: プロバイダーの確認 (--provider 指定時のみ)
 
@@ -135,18 +146,22 @@ if [ "$HTTP_CODE" != "200" ]; then
   ERROR_MSG=$(jq -r '.error.message // empty' "$TMP" 2>/dev/null)
   ERROR_CODE=$(jq -r '.error.code // empty' "$TMP" 2>/dev/null)
   echo "❌ 検索 API が失敗しました (HTTP $HTTP_CODE): ${ERROR_MSG:-$(cat /tmp/wfs-curl-err.txt 2>/dev/null)}"
-  [ -n "$ERROR_CODE" ] && echo "   code: $ERROR_CODE"
-  jq -r '.errors[]? | "   - \(.)"' "$TMP" 2>/dev/null
+  if [ -n "$ERROR_CODE" ]; then echo "   code: $ERROR_CODE"; fi
+  jq -r '.errors[]? | "   - \(.provider // "-") [\(.code // "-")]: \(.message // "")"' "$TMP" 2>/dev/null
   rm -f "$TMP"
   exit 1
 fi
 
 RESULT_COUNT=$(jq '.results | length' "$TMP" 2>/dev/null || echo 0)
-if [ "$RESULT_COUNT" = "0" ] || [ -z "$RESULT_COUNT" ]; then
+ANSWER_PRESENT=false
+if jq -e '.answer != null and .answer != "" and .answer != {}' "$TMP" >/dev/null 2>&1; then
+  ANSWER_PRESENT=true
+fi
+if { [ "$RESULT_COUNT" = "0" ] || [ -z "$RESULT_COUNT" ]; } && [ "$ANSWER_PRESENT" != "true" ]; then
   PROVIDER=$(jq -r '.provider // "unknown"' "$TMP")
   echo "⚠️ 検索結果は 0 件でした。"
   echo "   provider: $PROVIDER / query: $QUERY"
-  jq -r '.errors[]? | "   - \(.)"' "$TMP" 2>/dev/null
+  jq -r '.errors[]? | "   - \(.provider // "-") [\(.code // "-")]: \(.message // "")"' "$TMP" 2>/dev/null
   echo "   クエリを言い換えるか、--provider を変えて再実行してください。"
   rm -f "$TMP"
   exit 1
@@ -177,7 +192,7 @@ jq -r --arg q "$QUERY" --arg p "$PROVIDER" --arg t "$SEARCH_TYPE" --arg c "$CACH
 ' "$TMP"
 ```
 
-`.answer` が空でない場合は末尾に要約セクションを追加する (プロバイダーが生成した回答であり、ソース URL ではない点を明示する):
+`.answer` が空でない場合は末尾に要約セクションを追加する (プロバイダーが生成した回答であり、ソース URL ではない点を明示する)。`.answer` は文字列のほか object の場合もあるため、object は JSON 文字列化して先頭 1000 文字を出す:
 
 ```
 ---
@@ -186,7 +201,7 @@ jq -r --arg q "$QUERY" --arg p "$PROVIDER" --arg t "$SEARCH_TYPE" --arg c "$CACH
 ```
 
 ```bash
-ANSWER=$(jq -r '.answer // empty' "$TMP")
+ANSWER=$(jq -r 'if (.answer | type) == "object" then (.answer | tostring) elif (.answer | type) == "string" then .answer else empty end' "$TMP")
 if [ -n "$ANSWER" ]; then
   printf '%s\n' '---' '## プロバイダーによる回答 (参考)' "${ANSWER:0:1000}"
 fi
