@@ -12,9 +12,17 @@
     {
       "name": "webfetch-markdown",
       "source": "./plugins/webfetch-markdown",
-      "description": "URLのHTMLをMarkdown/プレーンテキストに変換してコンテキストに渡す。WebFetchのHaiku要約をバイパスして生のページ内容を取得する。",
+      "description": "URLのHTMLをMarkdown/プレーンテキストに変換してコンテキストに渡す。Omniroute 環境では /api/v1/web/fetch を使い、未使用時は curl / w3m / python3 で取得する。WebFetchは使わない。",
+      "version": "1.1.0",
+      "keywords": ["webfetch", "html", "markdown", "curl", "omniroute"],
+      "category": "utility"
+    },
+    {
+      "name": "websearch-fallback",
+      "source": "./plugins/websearch-fallback",
+      "description": "Omniroute の /api/v1/search で Web 検索し、URL / タイトル / スニペットを返す。標準 WebSearch がプロキシの streaming 経路で検索結果を返さない環境向け。",
       "version": "1.0.0",
-      "keywords": ["webfetch", "html", "markdown", "curl"],
+      "keywords": ["websearch", "omniroute", "search"],
       "category": "utility"
     }
   ]
